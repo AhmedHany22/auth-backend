@@ -4,8 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const handleLogin = async (req, res) => {
   const { user, pwd } = req.body;
-  if (!user || !pwd)
-    return res.status(400).json({ message: "Username and password are required." });
+  if (!user || !pwd) return res.status(400).json({ message: "Username and password are required." });
 
   const foundUser = await User.findOne({ username: user }).exec();
   if (!foundUser) return res.sendStatus(401); //Unauthorized
@@ -24,11 +23,7 @@ const handleLogin = async (req, res) => {
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "10s" }
     );
-    const refreshToken = jwt.sign(
-      { username: foundUser.username },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "20s" }
-    );
+    const refreshToken = jwt.sign({ username: foundUser.username }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "1d" });
     // Saving refreshToken with current user
     foundUser.refreshToken = refreshToken;
     const result = await foundUser.save();
@@ -36,16 +31,10 @@ const handleLogin = async (req, res) => {
     console.log(roles);
 
     // Creates Secure Cookie with refresh token
-    res.cookie("jwt", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    res.cookie("jwt", refreshToken, { httpOnly: true, secure: true, sameSite: "None", maxAge: 24 * 60 * 60 * 1000 });
 
     // Send authorization roles and access token to user
-    // res.json({ roles, accessToken });
-    res.json({ accessToken });
+    res.json({ roles, accessToken });
   } else {
     res.sendStatus(401);
   }
